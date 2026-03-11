@@ -37,10 +37,17 @@ window.handleSaveProduct = function(e) {
   e.preventDefault();
 
   const id = document.getElementById('productId').value;
+  const imageInput = document.getElementById('productImage').value;
+  
+  if (imageInput.trim().startsWith('data:image/')) {
+    alert("Error de Seguridad: No se permiten imágenes en formato Base64.\nPor favor, pega un enlace válido (http:// o https://) de la imagen.");
+    return; // Aborta el guardado
+  }
+
   const product = {
     name: document.getElementById('productName').value,
     price: parseFloat(document.getElementById('productPrice').value),
-    image: document.getElementById('productImage').value,
+    image: imageInput,
     description: document.getElementById('productDesc').value
   };
 

@@ -330,6 +330,7 @@ header {
 .product-image {
   height: 220px;
   width: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   border-bottom: 1px solid var(--border-color);
 }
