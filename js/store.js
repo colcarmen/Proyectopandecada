@@ -56,23 +56,47 @@ class Store {
     this.init();
   }
 
+  /**
+   * Inicializa el almacenamiento local con datos por defecto si están vacíos.
+   * Maneja errores en caso de que el localStorage esté desactivado o lleno.
+   */
   init() {
-    if (!localStorage.getItem(STORE_KEYS.PRODUCTS)) {
-      localStorage.setItem(STORE_KEYS.PRODUCTS, JSON.stringify(DEFAULT_PRODUCTS));
-    }
-    if (!localStorage.getItem(STORE_KEYS.CART)) {
-      localStorage.setItem(STORE_KEYS.CART, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(STORE_KEYS.ORDERS)) {
-      localStorage.setItem(STORE_KEYS.ORDERS, JSON.stringify([]));
+    try {
+      if (!localStorage.getItem(STORE_KEYS.PRODUCTS)) {
+        localStorage.setItem(STORE_KEYS.PRODUCTS, JSON.stringify(DEFAULT_PRODUCTS));
+      }
+      if (!localStorage.getItem(STORE_KEYS.CART)) {
+        localStorage.setItem(STORE_KEYS.CART, JSON.stringify([]));
+      }
+      if (!localStorage.getItem(STORE_KEYS.ORDERS)) {
+        localStorage.setItem(STORE_KEYS.ORDERS, JSON.stringify([]));
+      }
+    } catch (error) {
+      console.warn('Advertencia: localStorage no está disponible o accesible.', error);
     }
   }
 
   // --- Products ---
+  
+  /**
+   * Obtiene todos los productos del almacenamiento.
+   * @returns {Array} Listado de productos.
+   */
   getProducts() {
-    return JSON.parse(localStorage.getItem(STORE_KEYS.PRODUCTS));
+    try {
+      const data = localStorage.getItem(STORE_KEYS.PRODUCTS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('Error parseando productos de localStorage:', e);
+      return [];
+    }
   }
 
+  /**
+   * Obtiene un producto por su ID.
+   * @param {string} id El ID del producto.
+   * @returns {Object|undefined} El producto encontrado o undefined.
+   */
   getProductById(id) {
     return this.getProducts().find(p => p.id === id);
   }
@@ -103,8 +127,19 @@ class Store {
   }
 
   // --- Cart ---
+  
+  /**
+   * Obtiene el carrito del almacenamiento.
+   * @returns {Array} Listado de items en el carrito.
+   */
   getCart() {
-    return JSON.parse(localStorage.getItem(STORE_KEYS.CART));
+    try {
+      const data = localStorage.getItem(STORE_KEYS.CART);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('Error parseando carrito de localStorage:', e);
+      return [];
+    }
   }
 
   addToCart(productId, quantity = 1) {
@@ -120,8 +155,10 @@ class Store {
       cart.push({ product, quantity });
     }
 
-    localStorage.setItem(STORE_KEYS.CART, JSON.stringify(cart));
-    this.notifyCartUpdated();
+    try {
+      localStorage.setItem(STORE_KEYS.CART, JSON.stringify(cart));
+      this.notifyCartUpdated();
+    } catch(e) { console.error('Error guardando en carrito:', e); }
   }
 
   updateCartItemQuantity(productId, quantity) {
@@ -132,13 +169,17 @@ class Store {
       const item = cart.find(i => i.product.id === productId);
       if (item) item.quantity = quantity;
     }
-    localStorage.setItem(STORE_KEYS.CART, JSON.stringify(cart));
-    this.notifyCartUpdated();
+    try {
+      localStorage.setItem(STORE_KEYS.CART, JSON.stringify(cart));
+      this.notifyCartUpdated();
+    } catch(e) { console.error('Error actualizando cantidad en carrito:', e); }
   }
 
   clearCart() {
-    localStorage.setItem(STORE_KEYS.CART, JSON.stringify([]));
-    this.notifyCartUpdated();
+    try {
+      localStorage.setItem(STORE_KEYS.CART, JSON.stringify([]));
+      this.notifyCartUpdated();
+    } catch(e) { console.error('Error limpiando carrito:', e); }
   }
 
   getCartTotal() {
@@ -157,8 +198,20 @@ class Store {
   }
 
   // --- Orders ---
+  
+  /**
+   * Obtiene todas las órdenes del almacenamiento.
+   * @returns {Array} Listado de órdenes ordenadas por fecha reciente.
+   */
   getOrders() {
-    return JSON.parse(localStorage.getItem(STORE_KEYS.ORDERS)).sort((a, b) => b.createdAt - a.createdAt);
+    try {
+      const data = localStorage.getItem(STORE_KEYS.ORDERS);
+      const orders = data ? JSON.parse(data) : [];
+      return orders.sort((a, b) => b.createdAt - a.createdAt);
+    } catch (e) {
+      console.error('Error parseando ordenes de localStorage:', e);
+      return [];
+    }
   }
 
   getOrderById(id) {
@@ -219,7 +272,22 @@ const formatDate = (dateString) => {
   }).format(new Date(dateString));
 };
 
+// Helper for HTML sanitization to prevent XSS (ISO 27001)
+const escapeHTML = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag])
+  );
+};
+
 // Export to window
 window.AppStore = store;
 window.formatCurrency = formatCurrency;
 window.formatDate = formatDate;
+window.escapeHTML = escapeHTML; // Exposed globally for use in rendering
